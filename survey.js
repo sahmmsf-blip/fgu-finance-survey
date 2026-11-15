@@ -1,4 +1,4 @@
-/* Communication Skills student survey: shared definitions (questions, languages, storage).
+/* FGU — Financial Management student survey: shared definitions (questions, languages, storage).
    Every label is [Arabic, English, French]. Stored answers use the option keys, never the labels. */
 (function () {
   'use strict';
@@ -7,14 +7,14 @@
     // Public Supabase key: it can only insert a response. Reading needs the admin password.
     url: 'https://dpbjpjtrsjbmlijpkaup.supabase.co',
     key: 'sb_publishable_08Lm9kVInE-dqMJWlqK8Hw_fwwFmOf5',
-    table: 'comm_survey_responses'
+    table: 'fgu_survey_responses'
   };
 
-  var LANGS = ['ar', 'en'];
-  var LANG_NAMES = { ar: 'العربية', en: 'English' };
-  var LANG_SHORT = { ar: 'عربي', en: 'EN' };
+  var LANGS = ['ar', 'en', 'fr'];
+  var LANG_NAMES = { ar: 'العربية', en: 'English', fr: 'Français' };
+  var LANG_SHORT = { ar: 'عربي', en: 'EN', fr: 'FR' };
   var lang = 'ar';
-  try { var saved = localStorage.getItem('comm_lang'); if (LANGS.indexOf(saved) >= 0) lang = saved; } catch (e) {}
+  try { var saved = localStorage.getItem('fgu_lang'); if (LANGS.indexOf(saved) >= 0) lang = saved; } catch (e) {}
 
   function L(x, forLang) {
     if (x == null) return '';
@@ -25,173 +25,206 @@
   function setLang(l) {
     if (LANGS.indexOf(l) < 0) return;
     lang = l;
-    try { localStorage.setItem('comm_lang', l); } catch (e) {}
+    try { localStorage.setItem('fgu_lang', l); } catch (e) {}
     document.documentElement.lang = l;
     document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
   }
 
-  var OTHER = { v: 'other', l: ['أخرى', 'Other'], other: true };
-  var IDK = { v: 'idk', l: ['لا أعرف', 'I don’t know'] };
+  var OTHER = { v: 'other', l: ['أخرى', 'Other', 'Autre'], other: true };
+  var IDK = { v: 'idk', l: ['لا أعرف', 'I don’t know', 'Je ne sais pas'] };
   var SCALE = [
-    ['ضعيف جداً', 'Very weak'],
-    ['ضعيف', 'Weak'],
-    ['متوسط', 'Average'],
-    ['جيد', 'Good'],
-    ['ممتاز', 'Excellent']
+    ['ضعيف جداً', 'Very weak', 'Très faible'],
+    ['ضعيف', 'Weak', 'Faible'],
+    ['متوسط', 'Average', 'Moyen'],
+    ['جيد', 'Good', 'Bon'],
+    ['ممتاز', 'Excellent', 'Excellent']
   ];
-  function o(v, ar, en) { return { v: v, l: [ar, en] }; }
-  function same(v, s) { return { v: v, l: [s, s] }; }
-
-
-  /* Country list: sorted alphabetically in the language of the interface (done at render time in app.js). */
-  var COUNTRIES = (window.FGUCountries || []).slice();
-  var COLLEGES = [o('sci', 'العلوم والتكنولوجيا والهندسة', 'Science, technology & engineering'), o('biz', 'الأعمال والاقتصاد', 'Business & economics'),
-    o('edu', 'التربية', 'Education'), o('arts', 'الآداب والعلوم الإنسانية', 'Arts & humanities'), o('law', 'القانون والشريعة', 'Law & Sharia'),
-    o('health', 'الطب والصحة', 'Medicine & health sciences'), OTHER];
+  function o(v, ar, en, fr) { return { v: v, l: [ar, en, fr] }; }
+  function same(v, s) { return { v: v, l: [s, s, s] }; }
+  function hasWorked(a) { return !(a.emp_status === 'none' && a.exp_years === 'none'); }
 
   var SECTIONS = [
     {
       id: 'profile',
-      title: ['بيانات الطالب', 'Student profile'],
-      intro: ['نبدأ بالتعريف بك وببرنامجك الدراسي.', 'Let’s start with who you are and what you study.'],
+      title: ['بيانات الطالب', 'Student profile', 'Profil de l’étudiant'],
+      intro: ['نبدأ بالتعريف بك وببرنامجك الدراسي.', 'Let’s start with who you are and what you study.', 'Commençons par vous et votre programme d’études.'],
       questions: [
         { id: 'full_name', type: 'text', minWords: 4, maxLength: 120, autocomplete: 'name',
-          label: ['الاسم الرباعي', 'Full name (four parts)'],
-          hint: ['كما هو مسجل في الجامعة', 'As registered at the university'] },
+          label: ['الاسم الرباعي', 'Full name (four parts)', 'Nom complet (quatre parties)'],
+          hint: ['كما هو مسجل في الجامعة', 'As registered at the university', 'Tel qu’il est enregistré à l’université'] },
         { id: 'student_id', type: 'text', maxLength: 40, ltr: true,
-          label: ['الرقم الجامعي', 'University ID number'] },
-        { id: 'country', type: 'select', options: COUNTRIES,
-          label: ['الدولة', 'Country'],
-          hint: ['اختر دولتك من القائمة (مرتبة هجائياً)', 'Choose your country from the list (alphabetical)'] },
+          label: ['الرقم الجامعي', 'University ID number', 'Numéro d’étudiant'] },
         { id: 'level', type: 'single',
-          label: ['المرحلة الدراسية الحالية', 'Current degree programme'],
-          options: [o('diploma', 'دبلوم', 'Diploma'), o('bachelor', 'بكالوريوس', 'Bachelor’s'), o('master', 'ماجستير', 'Master’s'), OTHER] },
-        { id: 'college', type: 'single',
-          label: ['الكلية أو مجال التخصص', 'Faculty or field of study'], options: COLLEGES },
+          label: ['المرحلة الدراسية الحالية', 'Current degree programme', 'Cycle d’études actuel'],
+          options: [o('bachelor', 'بكالوريوس', 'Bachelor’s', 'Licence (Bachelor)'), o('master', 'ماجستير', 'Master’s', 'Master'), same('mba', 'MBA'), OTHER] },
+        { id: 'major', type: 'single',
+          label: ['التخصص', 'Major', 'Spécialité'],
+          options: [o('finance', 'تمويل', 'Finance', 'Finance'), o('accounting', 'محاسبة', 'Accounting', 'Comptabilité'),
+            o('business', 'إدارة أعمال', 'Business Administration', 'Administration des affaires'), o('economics', 'اقتصاد', 'Economics', 'Économie'), OTHER] },
         { id: 'year', type: 'single',
-          label: ['المستوى الدراسي الحالي', 'Current year of study'],
-          options: [o('y1', 'سنة أولى', 'First year'), o('y2', 'سنة ثانية', 'Second year'), o('y3', 'سنة ثالثة', 'Third year'),
-            o('y4', 'سنة رابعة', 'Fourth year'), o('y5', 'سنة خامسة أو أكثر', 'Fifth year or above')] }
+          label: ['المستوى الدراسي الحالي', 'Current year of study', 'Année d’études actuelle'],
+          options: [o('y1', 'سنة أولى', 'First year', 'Première année'), o('y2', 'سنة ثانية', 'Second year', 'Deuxième année'),
+            o('y3', 'سنة ثالثة', 'Third year', 'Troisième année'), o('y4', 'سنة رابعة أو أكثر', 'Fourth year or above', 'Quatrième année ou plus'),
+            o('grad', 'دراسات عليا', 'Postgraduate', 'Cycle supérieur')] }
       ]
     },
     {
-      id: 'language',
-      title: ['الخلفية اللغوية', 'Language background'],
-      intro: ['كيف تعلّمت الإنجليزية وكم تستخدمها؟', 'How did you learn English, and how much do you use it?'],
+      id: 'academic',
+      title: ['الخلفية العلمية', 'Academic background', 'Parcours académique'],
+      intro: ['ما الذي درسته قبل هذه المادة، وكيف تقيّم معرفتك؟', 'What have you studied before this course, and how do you rate your knowledge?', 'Qu’avez-vous étudié avant ce cours, et comment évaluez-vous vos connaissances ?'],
       questions: [
-        { id: 'school_type', type: 'single',
-          label: ['نوع المدرسة التي تخرجت منها', 'Type of school you graduated from'],
-          options: [o('public', 'حكومية', 'Public'), o('private', 'خاصة', 'Private'), o('intl', 'دولية', 'International'), OTHER] },
-        { id: 'eng_years', type: 'single',
-          label: ['عدد سنوات دراسة الإنجليزية', 'Years of studying English'],
-          options: [o('lt5', 'أقل من 5 سنوات', 'Fewer than 5 years'), o('5_9', 'من 5 إلى 9 سنوات', '5 to 9 years'),
-            o('10_12', 'من 10 إلى 12 سنة', '10 to 12 years'), o('gt12', 'أكثر من 12 سنة', 'More than 12 years')] },
-        { id: 'prev_eng', type: 'multi',
-          label: ['مقررات الإنجليزية التي درستها في الجامعة', 'English courses you have taken at university'],
-          options: [Object.assign(o('none', 'لم أدرس أياً منها', 'None of these'), { none: true }),
-            o('remedial', 'إنجليزي تأسيسي', 'Remedial / foundation English'), o('gen', 'إنجليزي عام', 'General English'),
-            o('eap', 'إنجليزي أكاديمي', 'English for academic purposes'), o('esp', 'إنجليزي لأغراض التخصص', 'English for my major')] },
-        { id: 'eng_use', type: 'single',
-          label: ['استخدامك للإنجليزية خارج قاعة الدرس', 'How often you use English outside class'],
-          options: [o('daily', 'يومياً', 'Daily'), o('weekly', 'أسبوعياً', 'Weekly'), o('rare', 'نادراً', 'Rarely'), o('never', 'أبداً', 'Never')] },
-        { id: 'exam', type: 'single',
-          label: ['نتيجة اختبار إنجليزي سابق', 'Previous English test result'],
-          options: [same('ielts', 'IELTS'), same('toefl', 'TOEFL'), o('placement', 'امتحان تحديد المستوى في الجامعة', 'University placement test'),
-            o('none', 'لم أقدّم أي اختبار', 'I have not taken a test')] }
+        { id: 'courses', type: 'multi',
+          label: ['المقررات التي درستها سابقاً', 'Courses you have already taken', 'Cours que vous avez déjà suivis'],
+          options: [Object.assign(o('none', 'لم أدرس أياً منها', 'None of these', 'Aucun de ces cours'), { none: true }),
+            o('fin_acc', 'محاسبة مالية', 'Financial accounting', 'Comptabilité financière'),
+            o('mgmt_acc', 'محاسبة إدارية', 'Managerial accounting', 'Comptabilité de gestion'),
+            o('stats', 'إحصاء', 'Statistics', 'Statistiques'),
+            o('micro', 'اقتصاد جزئي', 'Microeconomics', 'Microéconomie'),
+            o('macro', 'اقتصاد كلي', 'Macroeconomics', 'Macroéconomie'),
+            o('math', 'رياضيات أو تفاضل', 'Mathematics or calculus', 'Mathématiques ou calcul différentiel')] },
+        { id: 'k_acc', type: 'scale', short: ['المحاسبة المالية', 'Financial accounting', 'Comptabilité financière'],
+          label: ['معرفتك بالمحاسبة المالية', 'Your knowledge of financial accounting', 'Vos connaissances en comptabilité financière'] },
+        { id: 'k_stats', type: 'scale', short: ['الإحصاء', 'Statistics', 'Statistiques'],
+          label: ['معرفتك بالإحصاء', 'Your knowledge of statistics', 'Vos connaissances en statistiques'] },
+        { id: 'k_econ', type: 'scale', short: ['الاقتصاد', 'Economics', 'Économie'],
+          label: ['معرفتك بالاقتصاد', 'Your knowledge of economics', 'Vos connaissances en économie'] }
       ]
     },
     {
       id: 'quiz',
-      title: ['اختبار مستوى اللغة الإنجليزية', 'English level quiz'],
-      intro: ['ثمانية أسئلة بسيطة في القواعد والمفردات لا تدخل في أي علامة. إذا لم تعرف الإجابة فاختر «لا أعرف» ولا تخمّن.',
-        'Eight simple grammar and vocabulary questions that do not count towards any grade. If you are unsure, choose “I don’t know” rather than guessing.'],
+      title: ['أساسيات الإدارة المالية', 'Financial management basics', 'Bases de la gestion financière'],
+      intro: ['ثمانية أسئلة قصيرة لا تدخل في أي علامة. إذا لم تعرف الإجابة فاختر «لا أعرف» ولا تخمّن.',
+        'Eight short questions that do not count towards any grade. If you are unsure, choose “I don’t know” rather than guessing.',
+        'Huit questions courtes qui ne comptent pour aucune note. En cas de doute, choisissez « Je ne sais pas » plutôt que de deviner.'],
       questions: [
-        { id: 'q1', type: 'quiz', short: ['قواعد: المضارع البسيط', 'Grammar: present simple'],
-          label: ['Choose the correct word: “She ____ to university every day.”', 'Choose the correct word: “She ____ to university every day.”'],
-          options: [same('a', 'go'), same('b', 'goes'), same('c', 'going'), same('d', 'gone'), IDK] },
-        { id: 'q2', type: 'quiz', short: ['قواعد: الماضي', 'Grammar: past tense'],
-          label: ['Choose the correct word: “Yesterday we ____ a film.”', 'Choose the correct word: “Yesterday we ____ a film.”'],
-          options: [same('a', 'watch'), same('b', 'watches'), same('c', 'watched'), same('d', 'watching'), IDK] },
-        { id: 'q3', type: 'quiz', short: ['قواعد: أدوات التنكير', 'Grammar: articles'],
-          label: ['Choose the correct word: “I have ____ apple in my bag.”', 'Choose the correct word: “I have ____ apple in my bag.”'],
-          options: [same('a', 'an'), same('b', 'a'), same('c', 'the'), same('d', 'two'), IDK] },
-        { id: 'q4', type: 'quiz', short: ['قواعد: حروف الجر', 'Grammar: prepositions'],
-          label: ['Choose the correct word: “The lecture is ____ Monday.”', 'Choose the correct word: “The lecture is ____ Monday.”'],
-          options: [same('a', 'in'), same('b', 'on'), same('c', 'at'), same('d', 'by'), IDK] },
-        { id: 'q5', type: 'quiz', short: ['قواعد: الجمع', 'Grammar: plurals'],
-          label: ['Choose the correct word: “There are three ____ in the room.”', 'Choose the correct word: “There are three ____ in the room.”'],
-          options: [same('a', 'child'), same('b', 'childs'), same('c', 'children'), same('d', 'childrens'), IDK] },
-        { id: 'q6', type: 'quiz', short: ['مفردات: الأضداد', 'Vocabulary: opposites'],
-          label: ['Which word means the opposite of “difficult”?', 'Which word means the opposite of “difficult”?'],
-          options: [same('a', 'Slow'), same('b', 'Late'), same('c', 'Hard'), same('d', 'Easy'), IDK] },
-        { id: 'q7', type: 'quiz', short: ['مفردات: المعنى', 'Vocabulary: meaning'],
-          label: ['Which word means “very happy”?', 'Which word means “very happy”?'],
-          options: [same('a', 'Sad'), same('b', 'Tired'), same('c', 'Delighted'), same('d', 'Angry'), IDK] },
-        { id: 'q8', type: 'quiz', short: ['قواعد: المقارنة', 'Grammar: comparatives'],
-          label: ['Choose the correct form: “This book is ____ than that one.”', 'Choose the correct form: “This book is ____ than that one.”'],
-          options: [same('a', 'more interesting'), same('b', 'most interesting'), same('c', 'interestinger'), same('d', 'interesting'), IDK] }
+        { id: 'q1', type: 'quiz', short: ['هدف الإدارة المالية', 'Goal of financial management', 'Objectif de la gestion financière'],
+          label: ['الهدف الأساسي للإدارة المالية في الشركة هو:', 'The primary goal of financial management in a firm is to:', 'L’objectif principal de la gestion financière d’une entreprise est de :'],
+          options: [o('a', 'تعظيم المبيعات', 'Maximise sales', 'Maximiser les ventes'),
+            o('b', 'تعظيم ثروة الملاك (قيمة الشركة)', 'Maximise shareholders’ wealth (firm value)', 'Maximiser la richesse des actionnaires (valeur de l’entreprise)'),
+            o('c', 'تقليل التكاليف إلى أدنى حد', 'Minimise costs', 'Minimiser les coûts'),
+            o('d', 'تعظيم الربح المحاسبي للسنة الحالية', 'Maximise this year’s accounting profit', 'Maximiser le bénéfice comptable de l’année en cours'), IDK] },
+        { id: 'q2', type: 'quiz', short: ['القيمة الحالية', 'Present value', 'Valeur actuelle'],
+          label: ['القيمة الحالية لمبلغ 1,100 يُستلم بعد سنة واحدة بمعدل خصم 10% هي:', 'The present value of 1,100 received one year from now, discounted at 10%, is:', 'La valeur actuelle de 1 100 reçus dans un an, actualisés à 10 %, est :'],
+          options: [same('a', '990'), same('b', '1,000'), same('c', '1,010'), same('d', '1,210'), IDK] },
+        { id: 'q3', type: 'quiz', short: ['القيمة المستقبلية', 'Future value', 'Valeur future'],
+          label: ['استثمرت 1,000 بفائدة مركبة 10% سنوياً. قيمتها بعد سنتين:', 'You invest 1,000 at 10% compounded annually. Its value after two years is:', 'Vous placez 1 000 à 10 % d’intérêts composés par an. Sa valeur après deux ans est :'],
+          options: [same('a', '1,100'), same('b', '1,200'), same('c', '1,210'), same('d', '1,221'), IDK] },
+        { id: 'q4', type: 'quiz', short: ['المخاطرة والعائد', 'Risk and return', 'Risque et rendement'],
+          label: ['الأصل الأعلى مخاطرة يطلب المستثمرون منه عادةً عائداً متوقعاً:', 'For a riskier asset, investors normally require an expected return that is:', 'Pour un actif plus risqué, les investisseurs exigent normalement un rendement attendu :'],
+          options: [o('a', 'أعلى', 'Higher', 'Plus élevé'), o('b', 'أقل', 'Lower', 'Plus faible'),
+            o('c', 'مساوياً لعائد الأصل الخالي من المخاطر', 'Equal to the risk-free return', 'Égal au rendement sans risque'),
+            o('d', 'لا علاقة بين المخاطرة والعائد', 'Risk and return are unrelated', 'Le risque et le rendement ne sont pas liés'), IDK] },
+        { id: 'q5', type: 'quiz', short: ['صافي القيمة الحالية', 'Net present value', 'Valeur actuelle nette'],
+          label: ['إذا كان صافي القيمة الحالية (NPV) لمشروع مستقل موجباً، فالقرار السليم:', 'If an independent project’s net present value (NPV) is positive, the sound decision is to:', 'Si la valeur actuelle nette (VAN) d’un projet indépendant est positive, la bonne décision est :'],
+          options: [o('a', 'رفض المشروع', 'Reject the project', 'De rejeter le projet'), o('b', 'قبول المشروع', 'Accept the project', 'D’accepter le projet'),
+            o('c', 'الاعتماد على فترة الاسترداد فقط', 'Decide on the payback period alone', 'De décider selon le seul délai de récupération'),
+            o('d', 'الانتظار حتى يصبح NPV صفراً', 'Wait until NPV equals zero', 'D’attendre que la VAN soit nulle'), IDK] },
+        { id: 'q6', type: 'quiz', short: ['نسبة التداول', 'Current ratio', 'Ratio de liquidité générale'],
+          label: ['نسبة التداول تُحسب بقسمة:', 'The current ratio is calculated as:', 'Le ratio de liquidité générale se calcule ainsi :'],
+          options: [o('a', 'الأصول المتداولة ÷ الالتزامات المتداولة', 'Current assets ÷ current liabilities', 'Actifs courants ÷ passifs courants'),
+            o('b', 'إجمالي الأصول ÷ إجمالي الالتزامات', 'Total assets ÷ total liabilities', 'Total des actifs ÷ total des passifs'),
+            o('c', 'صافي الربح ÷ المبيعات', 'Net income ÷ sales', 'Résultat net ÷ chiffre d’affaires'),
+            o('d', 'النقد ÷ إجمالي الأصول', 'Cash ÷ total assets', 'Trésorerie ÷ total des actifs'), IDK] },
+        { id: 'q7', type: 'quiz', short: ['قائمة المركز المالي', 'Balance sheet', 'Bilan'],
+          label: ['القائمة التي تُظهر المركز المالي للشركة في تاريخ محدد هي:', 'The statement that shows a firm’s financial position at a specific date is the:', 'L’état qui présente la situation financière de l’entreprise à une date donnée est :'],
+          options: [o('a', 'قائمة الدخل', 'Income statement', 'Le compte de résultat'),
+            o('b', 'قائمة التدفقات النقدية', 'Cash flow statement', 'Le tableau des flux de trésorerie'),
+            o('c', 'الميزانية العمومية (قائمة المركز المالي)', 'Balance sheet (statement of financial position)', 'Le bilan (état de la situation financière)'),
+            o('d', 'قائمة التغيرات في حقوق الملكية', 'Statement of changes in equity', 'L’état des variations des capitaux propres'), IDK] },
+        { id: 'q8', type: 'quiz', short: ['تكلفة الدين بعد الضريبة', 'After-tax cost of debt', 'Coût de la dette après impôt'],
+          label: ['إذا كانت تكلفة الدين قبل الضريبة Kd ومعدل الضريبة T، فتكلفة الدين بعد الضريبة:', 'If the pre-tax cost of debt is Kd and the tax rate is T, the after-tax cost of debt is:', 'Si le coût de la dette avant impôt est Kd et le taux d’imposition T, le coût de la dette après impôt est :'],
+          options: [same('a', 'Kd × (1 + T)'), same('b', 'Kd ÷ T'), same('c', 'Kd × (1 − T)'), same('d', 'Kd − T'), IDK] }
+      ]
+    },
+    {
+      id: 'work',
+      title: ['الخبرة العملية', 'Work experience', 'Expérience professionnelle'],
+      intro: ['نريد أن نعرف علاقتك بسوق العمل وبالقرارات المالية فيه.', 'Tell us about your working life and how close it is to financial decisions.', 'Parlez-nous de votre vie professionnelle et de votre proximité avec les décisions financières.'],
+      questions: [
+        { id: 'emp_status', type: 'single',
+          label: ['الحالة الوظيفية', 'Employment status', 'Situation professionnelle'],
+          options: [o('full', 'دوام كامل', 'Full-time employee', 'Salarié à temps plein'), o('part', 'دوام جزئي', 'Part-time employee', 'Salarié à temps partiel'),
+            o('own', 'عمل خاص', 'Self-employed / own business', 'Indépendant / entrepreneur'), o('none', 'لا أعمل حالياً', 'Not currently working', 'Sans emploi actuellement')] },
+        { id: 'exp_years', type: 'single',
+          label: ['سنوات الخبرة العملية', 'Years of work experience', 'Années d’expérience professionnelle'],
+          options: [o('none', 'بلا خبرة', 'No experience', 'Aucune expérience'), o('lt2', 'أقل من سنتين', 'Less than 2 years', 'Moins de 2 ans'),
+            o('2_5', 'من 2 إلى 5 سنوات', '2 to 5 years', '2 à 5 ans'), o('6_10', 'من 6 إلى 10 سنوات', '6 to 10 years', '6 à 10 ans'),
+            o('gt10', 'أكثر من 10 سنوات', 'More than 10 years', 'Plus de 10 ans')] },
+        { id: 'sector', type: 'single', showIf: hasWorked,
+          label: ['قطاع العمل (الحالي أو الأخير)', 'Work sector (current or most recent)', 'Secteur d’activité (actuel ou le plus récent)'],
+          options: [o('banking', 'بنوك وخدمات مالية', 'Banking & financial services', 'Banque et services financiers'), o('insurance', 'تأمين', 'Insurance', 'Assurance'),
+            o('industry', 'صناعة', 'Manufacturing', 'Industrie'), o('retail', 'تجارة وتجزئة', 'Trade & retail', 'Commerce et distribution'),
+            o('services', 'خدمات', 'Services', 'Services'), o('gov', 'قطاع حكومي', 'Government', 'Secteur public'),
+            o('tech', 'اتصالات وتقنية', 'Telecom & technology', 'Télécoms et technologies'), o('health', 'صحة', 'Healthcare', 'Santé'),
+            o('edu', 'تعليم', 'Education', 'Éducation'), OTHER] },
+        { id: 'job', type: 'single', showIf: hasWorked,
+          label: ['مجال الوظيفة (الحالية أو الأخيرة)', 'Job function (current or most recent)', 'Fonction (actuelle ou la plus récente)'],
+          options: [o('accounting', 'محاسبة', 'Accounting', 'Comptabilité'), o('finance', 'تمويل', 'Finance', 'Finance'), o('audit', 'تدقيق', 'Audit', 'Audit'),
+            o('treasury', 'خزينة', 'Treasury', 'Trésorerie'), o('sales', 'مبيعات', 'Sales', 'Ventes'), o('mgmt', 'إدارة', 'Management', 'Direction / gestion'),
+            o('hr', 'موارد بشرية', 'Human resources', 'Ressources humaines'), o('it', 'تقنية معلومات', 'Information technology', 'Informatique'), OTHER] },
+        { id: 'org_size', type: 'single', showIf: hasWorked,
+          label: ['حجم المنشأة', 'Organisation size', 'Taille de l’organisation'],
+          options: [o('lt10', 'أقل من 10 موظفين', 'Fewer than 10 employees', 'Moins de 10 salariés'), o('10_50', 'من 10 إلى 50 موظفاً', '10 to 50 employees', '10 à 50 salariés'),
+            o('51_250', 'من 51 إلى 250 موظفاً', '51 to 250 employees', '51 à 250 salariés'), o('gt250', 'أكثر من 250 موظفاً', 'More than 250 employees', 'Plus de 250 salariés')] },
+        { id: 'fin_role', type: 'single', showIf: hasWorked,
+          label: ['مشاركتك في القرارات المالية في العمل', 'Your involvement in financial decisions at work', 'Votre participation aux décisions financières au travail'],
+          options: [o('none', 'لا أشارك', 'I am not involved', 'Je n’y participe pas'), o('observe', 'أتابع فقط', 'I only follow them', 'Je les suis seulement'),
+            o('analyse', 'أشارك في التحليل', 'I contribute to the analysis', 'Je participe à l’analyse'), o('decide', 'أتخذ القرار', 'I make the decision', 'Je prends la décision')] },
+        { id: 'tasks', type: 'multi',
+          label: ['المهام المالية التي نفذتها', 'Financial tasks you have carried out', 'Tâches financières que vous avez réalisées'],
+          options: [Object.assign(o('none', 'لا شيء', 'None', 'Aucune'), { none: true }),
+            o('budgets', 'موازنات', 'Budgeting', 'Budgets'), o('reports', 'تقارير مالية', 'Financial reporting', 'Reporting financier'),
+            o('cashflow', 'تدفقات نقدية', 'Cash flow management', 'Flux de trésorerie'), o('analysis', 'تحليل مالي', 'Financial analysis', 'Analyse financière'),
+            o('invest', 'تقييم استثمارات', 'Investment appraisal', 'Évaluation d’investissements'), o('credit', 'ائتمان', 'Credit', 'Crédit'),
+            o('costing', 'تكاليف', 'Costing', 'Calcul des coûts'), o('tax', 'ضرائب', 'Taxation', 'Fiscalité')] },
+        { id: 'certs', type: 'multi',
+          label: ['الشهادات المهنية', 'Professional certificates', 'Certifications professionnelles'],
+          options: [Object.assign(o('none', 'لا أحمل شهادة مهنية', 'No professional certificate', 'Aucune certification'), { none: true }),
+            same('cfa', 'CFA'), same('cma', 'CMA'), same('acca', 'ACCA'), same('cpa', 'CPA'),
+            o('studying', 'أدرس لإحداها حالياً', 'Currently studying for one', 'En préparation de l’une d’elles'), OTHER] }
       ]
     },
     {
       id: 'skills',
-      title: ['التقييم الذاتي للمهارات', 'Self-assessment of skills'],
-      intro: ['قيّم نفسك بصدق من 1 إلى 5؛ التقييم يساعد في ضبط الأنشطة ومستوى الشرح.', 'Rate yourself honestly from 1 to 5; it helps set the activities and the level of the lectures.'],
+      title: ['المهارات الكمية والتقنية', 'Quantitative and technical skills', 'Compétences quantitatives et techniques'],
+      intro: ['قيّم نفسك بصدق؛ التقييم يساعد في ضبط مستوى الشرح والتطبيقات.', 'Rate yourself honestly; it helps set the level of the lectures and exercises.', 'Évaluez-vous honnêtement ; cela aide à ajuster le niveau des cours et des exercices.'],
       questions: [
-        { id: 's_speak', type: 'scale', short: ['التحدث بالإنجليزية', 'Speaking English'], label: ['مستواك في التحدث بالإنجليزية', 'Your level in speaking English'] },
-        { id: 's_listen', type: 'scale', short: ['الاستماع', 'Listening'], label: ['مستواك في الاستماع وفهم المحادثات', 'Your level in listening and understanding conversations'] },
-        { id: 's_read', type: 'scale', short: ['القراءة', 'Reading'], label: ['مستواك في قراءة النصوص الإنجليزية', 'Your level in reading English texts'] },
-        { id: 's_write', type: 'scale', short: ['الكتابة', 'Writing'], label: ['مستواك في الكتابة بالإنجليزية', 'Your level in writing English'] },
-        { id: 's_present', type: 'scale', short: ['العرض أمام الجمهور', 'Presenting to an audience'], label: ['راحتك في العرض والتحدث أمام الجمهور', 'Your comfort presenting and speaking in front of an audience'] },
-        { id: 's_email', type: 'scale', short: ['كتابة البريد الرسمي', 'Writing formal emails'], label: ['قدرتك على كتابة بريد إلكتروني رسمي', 'Your ability to write a formal email'] },
-        { id: 's_team', type: 'scale', short: ['العمل الجماعي', 'Teamwork'], label: ['قدرتك على العمل ضمن فريق', 'Your ability to work in a team'] }
-      ]
-    },
-    {
-      id: 'tech',
-      title: ['التقنية وأسلوب التعلم', 'Technology and learning style'],
-      intro: ['ما الأدوات المتوفرة لديك وكيف تفضّل أن تتعلم؟', 'What tools do you have and how do you prefer to learn?'],
-      questions: [
-        { id: 'tools', type: 'multi',
-          label: ['الأدوات التي استخدمتها', 'Tools you have used'],
-          options: [Object.assign(o('none', 'لا شيء', 'None'), { none: true }),
-            o('meet', 'Zoom أو Teams أو Meet', 'Zoom, Teams or Meet'), same('gdocs', 'Google Docs'), same('ppt', 'PowerPoint / Slides'),
-            o('ai', 'أدوات الذكاء الاصطناعي', 'AI assistants'), same('grammarly', 'Grammarly')] },
-        { id: 'device', type: 'single',
-          label: ['الجهاز الذي تستخدمه للدراسة', 'The device you study on'],
-          options: [o('laptop', 'حاسوب محمول أو مكتبي', 'Laptop or desktop'), o('tablet', 'جهاز لوحي', 'Tablet'),
-            o('phone', 'هاتف فقط', 'Phone only'), o('shared', 'جهاز مشترك', 'A shared device')] },
-        { id: 'internet', type: 'single',
-          label: ['جودة اتصالك بالإنترنت', 'Quality of your internet connection'],
-          options: [o('stable', 'مستقر', 'Stable'), o('sometimes', 'ينقطع أحياناً', 'Sometimes unstable'), o('weak', 'ضعيف', 'Weak')] },
-        { id: 'learn_style', type: 'multi',
-          label: ['أسلوب التعلم الذي تفضّله', 'Your preferred way of learning'],
-          options: [o('lecture', 'شرح المحاضر', 'Lecturer explanation'), o('discussion', 'النقاش والحوار', 'Discussion'),
-            o('practice', 'التطبيق العملي', 'Hands-on practice'), o('group', 'المشاريع الجماعية', 'Group projects'),
-            o('video', 'الفيديو والوسائط', 'Videos and media')] }
+        { id: 's_excel', type: 'scale', short: ['Excel', 'Excel', 'Excel'],
+          label: ['مستواك في Excel', 'Your Excel level', 'Votre niveau sur Excel'] },
+        { id: 's_math', type: 'scale', short: ['الرياضيات والنسب', 'Mathematics and ratios', 'Mathématiques et ratios'],
+          label: ['راحتك في التعامل مع الرياضيات والنسب', 'Your comfort with mathematics and ratios', 'Votre aisance avec les mathématiques et les ratios'] },
+        { id: 's_statements', type: 'scale', short: ['قراءة القوائم المالية', 'Reading financial statements', 'Lecture des états financiers'],
+          label: ['قدرتك على قراءة القوائم المالية', 'Your ability to read financial statements', 'Votre capacité à lire les états financiers'] },
+        { id: 's_english', type: 'scale', short: ['المصطلحات المالية بالإنجليزية', 'Financial terms in English', 'Termes financiers en anglais'],
+          label: ['راحتك مع المصطلحات المالية بالإنجليزية', 'Your comfort with financial terms in English', 'Votre aisance avec les termes financiers en anglais'] },
+        { id: 'software', type: 'multi',
+          label: ['البرامج التي استخدمتها', 'Software you have used', 'Logiciels que vous avez utilisés'],
+          options: [Object.assign(o('none', 'لا شيء', 'None', 'Aucun'), { none: true }),
+            same('sap', 'SAP'), same('oracle', 'Oracle'), same('quickbooks', 'QuickBooks'), same('odoo', 'Odoo'),
+            same('powerbi', 'Power BI'), same('tableau', 'Tableau'), o('python_r', 'Python أو R', 'Python or R', 'Python ou R')] },
+        { id: 'calc', type: 'single',
+          label: ['استخدامك للآلة الحاسبة المالية', 'Your use of a financial calculator', 'Votre usage d’une calculatrice financière'],
+          options: [o('no', 'لا أستخدمها', 'I don’t use one', 'Je n’en utilise pas'), o('sometimes', 'أحياناً', 'Sometimes', 'Parfois'), o('often', 'باستمرار', 'Regularly', 'Régulièrement')] }
       ]
     },
     {
       id: 'goals',
-      title: ['التوقعات والأهداف', 'Expectations and goals'],
-      intro: ['الخطوة الأخيرة: ماذا تريد من هذه المادة؟', 'Last step: what do you want from this course?'],
+      title: ['التوقعات والأهداف', 'Expectations and goals', 'Attentes et objectifs'],
+      intro: ['الخطوة الأخيرة: ماذا تريد من هذه المادة؟', 'Last step: what do you want from this course?', 'Dernière étape : qu’attendez-vous de ce cours ?'],
       questions: [
         { id: 'goals', type: 'multi',
-          label: ['هدفك من المادة', 'Your goal for this course'],
-          options: [o('pass', 'النجاح في المادة', 'Passing the course'), o('speak', 'تحسين المحادثة', 'Improving my speaking'),
-            o('academic', 'الكتابة الأكاديمية', 'Academic writing'), o('interview', 'مقابلات العمل', 'Job interviews'),
-            o('present', 'العرض والإلقاء', 'Presenting and public speaking'), o('prof', 'التواصل المهني', 'Professional communication')] },
-        { id: 'difficulty', type: 'multi',
-          label: ['أكبر الصعوبات التي تتوقعها', 'The biggest difficulties you expect'],
-          options: [o('fear', 'الخوف من الكلام أمام الآخرين', 'Fear of speaking in front of others'), o('vocab', 'المفردات', 'Vocabulary'),
-            o('grammar', 'القواعد', 'Grammar'), o('shy', 'الخجل', 'Shyness'), o('listen', 'فهم المتحدثين', 'Understanding speakers'), OTHER] },
+          label: ['هدفك من المادة', 'Your goal for this course', 'Votre objectif pour ce cours'],
+          options: [o('pass', 'النجاح في المادة', 'Passing the course', 'Réussir le cours'), o('promo', 'ترقية وظيفية', 'Career advancement', 'Évolution de carrière'),
+            o('cert', 'شهادة مهنية', 'A professional certificate', 'Une certification professionnelle'), o('biz', 'مشروع خاص', 'Running my own business', 'Mon propre projet d’entreprise'),
+            o('invest', 'استثمار شخصي', 'Personal investing', 'Investissement personnel'), o('academic', 'مسار أكاديمي', 'An academic path', 'Un parcours académique')] },
         { id: 'hours', type: 'single',
-          label: ['الساعات الأسبوعية المتاحة لدراسة المادة', 'Hours per week you can give this course'],
-          options: [o('lt2', 'أقل من ساعتين', 'Less than 2 hours'), o('2_4', 'من 2 إلى 4 ساعات', '2 to 4 hours'),
-            o('5_8', 'من 5 إلى 8 ساعات', '5 to 8 hours'), o('gt8', 'أكثر من 8 ساعات', 'More than 8 hours')] },
+          label: ['الساعات الأسبوعية المتاحة لدراسة المادة', 'Hours per week you can give this course', 'Heures par semaine que vous pouvez consacrer à ce cours'],
+          options: [o('lt2', 'أقل من ساعتين', 'Less than 2 hours', 'Moins de 2 heures'), o('2_4', 'من 2 إلى 4 ساعات', '2 to 4 hours', '2 à 4 heures'),
+            o('5_8', 'من 5 إلى 8 ساعات', '5 to 8 hours', '5 à 8 heures'), o('gt8', 'أكثر من 8 ساعات', 'More than 8 hours', 'Plus de 8 heures')] },
         { id: 'expect', type: 'longtext', maxLength: 600,
-          label: ['ما توقعاتك من المادة؟', 'What do you expect from this course?'] },
+          label: ['ما توقعاتك من المادة؟', 'What do you expect from this course?', 'Qu’attendez-vous de ce cours ?'] },
         { id: 'concerns', type: 'longtext', maxLength: 600,
-          label: ['ما مخاوفك أو الصعوبات التي تتوقعها؟', 'What concerns or difficulties do you expect?'] }
+          label: ['ما مخاوفك أو الصعوبات التي تتوقعها؟', 'What concerns or difficulties do you expect?', 'Quelles craintes ou difficultés prévoyez-vous ?'] }
       ]
     }
   ];
@@ -222,7 +255,7 @@
   }
 
   function optLabel(q, v, forLang) {
-    if (v === 'na') return L(['لا ينطبق', 'Not applicable'], forLang);
+    if (v === 'na') return L(['لا ينطبق', 'Not applicable', 'Sans objet'], forLang);
     for (var i = 0; i < q.options.length; i++) if (q.options[i].v === v) return L(q.options[i].l, forLang);
     return v == null ? '' : String(v);
   }
@@ -257,10 +290,10 @@
 
   window.FGU = {
     LANGS: LANGS, LANG_NAMES: LANG_NAMES, LANG_SHORT: LANG_SHORT, SECTIONS: SECTIONS, ALL: ALL, SCALE: SCALE,
-    COURSE: ['مهارات الاتصال والتواصل', 'Communication Skills'],
-    UNI: ['جامعة فلوريدا العالمية', 'Florida Global University'],
+    COURSE: ['الإدارة المالية', 'Financial Management', 'Gestion financière'],
+    UNI: ['جامعة فلوريدا العالمية', 'Florida Global University', 'Florida Global University'],
     L: L, setLang: setLang, getLang: function () { return lang; },
-    visible: visible, check: check, optLabel: optLabel,
+    visible: visible, check: check, optLabel: optLabel, hasWorked: hasWorked,
     submit: submit, rpc: rpc, esc: esc
   };
   setLang(lang);

@@ -1,10 +1,10 @@
-/* Communication Skills survey — scoring and the interactive Excel workbook (admin side only).
+/* FGU survey — scoring and the interactive Excel workbook (admin side only).
    Workbook: Dashboard (filters + live formulas + data bars), Responses, Calc (0/1 helper columns), Lists (hidden). */
 (function () {
   'use strict';
   var F = window.FGU, L = F.L;
 
-  var KEY = { q1: 'b', q2: 'c', q3: 'a', q4: 'b', q5: 'c', q6: 'd', q7: 'c', q8: 'a' };
+  var KEY = { q1: 'b', q2: 'b', q3: 'c', q4: 'a', q5: 'b', q6: 'a', q7: 'c', q8: 'c' };
   var QUIZ_MAX = 8;
   var BANDS = [
     { l: ['تأسيسي (0–3)', 'Foundation (0–3)', 'Débutant (0–3)'] },
@@ -28,7 +28,7 @@
   }
 
   var X = {
-    title: ['لوحة استبيان طلاب مهارات الاتصال والتواصل', 'Communication Skills Student Survey — Dashboard', ''],
+    title: ['لوحة استبيان طلاب الإدارة المالية', 'Financial Management Student Survey — Dashboard', 'Tableau de bord — Enquête étudiants, Gestion financière'],
     generated: ['تاريخ التصدير', 'Exported on', 'Exporté le'],
     filters: ['التصفية — اختر من القوائم المنسدلة فتتحدث كل الأرقام', 'Filters — pick from the drop-down lists and every figure updates', 'Filtres — choisissez dans les listes déroulantes, tous les chiffres se mettent à jour'],
     all: ['الكل', 'All', 'Tous'],
@@ -53,7 +53,7 @@
     var rtl = lang === 'ar';
     var NAVY = 'FF0C2742', MID = 'FF1B4B78', GOLD = 'FFC8A24A', TINT = 'FFEAF0F7', WHITE = 'FFFFFFFF', MUTED = 'FF5A6A7C';
     var wb = new ExcelJS.Workbook();
-    wb.creator = 'Communication Skills survey'; wb.created = new Date();
+    wb.creator = 'FGU Financial Management survey'; wb.created = new Date();
     wb.calcProperties = { fullCalcOnLoad: true };
     var dash = wb.addWorksheet('Dashboard', { views: [{ rightToLeft: rtl, showGridLines: false }], properties: { tabColor: { argb: GOLD } } });
     var resp = wb.addWorksheet('Responses', { views: [{ rightToLeft: rtl, state: 'frozen', ySplit: 1, xSplit: 0 }] });
@@ -125,7 +125,7 @@
 
     /* ---------- Lists + filters ---------- */
     var ALL = t(X.all);
-    var filterQs = ['level', 'college', 'year'].map(function (id) { return F.ALL.filter(function (q) { return q.id === id; })[0]; });
+    var filterQs = ['level', 'major', 'emp_status'].map(function (id) { return F.ALL.filter(function (q) { return q.id === id; })[0]; });
     filterQs.forEach(function (q, i) {
       [ALL].concat(q.options.map(function (op) { return t(op.l); })).forEach(function (v, j) { lists.getCell(j + 1, i + 1).value = v; });
     });
@@ -207,10 +207,6 @@
       blockHead(t(q.label), t(X.count), t(X.pct));
       var from = row, vals = q.options.map(function (op) { return op.v; });
       if (q.showIf) vals.push('na');
-      if (q.type === 'select') {
-        var cnt = {}; recs.forEach(function (r) { if (r.a[q.id]) cnt[r.a[q.id]] = (cnt[r.a[q.id]] || 0) + 1; });
-        vals = vals.filter(function (v) { return cnt[v]; }).sort(function (x, y) { return cnt[y] - cnt[x]; });
-      }
       vals.forEach(function (v) {
         line(F.optLabel(q, v, lang), 'COUNTIFS(' + FILT + ',' + RR(q.id) + ',$B' + row + ')', countWhere(function (r) { return r.a[q.id] === v; }));
       });
@@ -249,7 +245,7 @@
     bars(from, GOLD);
 
     // 2. everything else, in survey order
-    ['country', 'level', 'college', 'year', 'school_type', 'eng_years', 'prev_eng', 'eng_use', 'exam', 'tools', 'device', 'internet', 'learn_style', 'goals', 'difficulty', 'hours'].forEach(function (id) {
+    ['level', 'major', 'year', 'courses', 'emp_status', 'exp_years', 'sector', 'job', 'org_size', 'fin_role', 'tasks', 'certs', 'software', 'calc', 'goals', 'hours'].forEach(function (id) {
       var q = byId(id); if (q.type === 'multi') blockMulti(q); else blockSingle(q);
     });
 
