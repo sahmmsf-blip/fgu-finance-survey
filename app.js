@@ -1,22 +1,18 @@
-/* FGU survey — student wizard: one section per page, live progress out of 100%. */
+/* Communication Skills survey — student wizard: one section per page, live progress out of 100%. */
 (function () {
   'use strict';
   var F = window.FGU, L = F.L, esc = F.esc, S = F.SECTIONS;
-  var DRAFT = 'fgu_survey_draft_v1', DONE = 'fgu_survey_done_v1';
+  var DRAFT = 'comm_survey_draft_v1', DONE = 'comm_survey_done_v1';
 
   var T = {
-    surveyTitle: ['استبيان التعرف على طلاب المادة', 'Getting to know the class', 'Mieux connaître la classe'],
-    lead: ['إجاباتك تساعد محاضر المادة على معرفة مستوى الطلاب العلمي والعملي ومجالات عملهم، ليضبط الشرح والأمثلة والتطبيقات على ما يناسبكم.',
-      'Your answers help the lecturer understand the academic and professional level of the class and where you work, so the lectures, examples and exercises fit you.',
-      'Vos réponses aident l’enseignant à connaître le niveau académique et professionnel de la classe et vos domaines d’activité, afin d’adapter les cours, les exemples et les exercices.'],
-    fSteps: ['6 خطوات قصيرة', '6 short steps', '6 étapes courtes'],
-    fTime: ['نحو 8 دقائق', 'About 8 minutes', 'Environ 8 minutes'],
+    surveyTitle: ['استبيان التعرف على طلاب المادة', 'Getting to know the class'],
+    lead: ['إجاباتك تساعد محاضر المادة على معرفة مستواك اللغوي وخبرتك في التواصل وتوقعاتك، ليضبط الأنشطة والأمثلة على ما يناسبكم.', 'Your answers help the lecturer understand your language level, communication experience and expectations, so the activities and examples fit you.'],
+    fSteps: ['6 خطوات قصيرة', '6 short steps'],
+    fTime: ['نحو 8 دقائق', 'About 8 minutes'],
     fReq: ['جميع الأسئلة إلزامية', 'Every question is required', 'Toutes les questions sont obligatoires'],
     start: ['ابدأ الاستبيان', 'Start the survey', 'Commencer le questionnaire'],
     resume: ['متابعة من حيث توقفت', 'Continue where you left off', 'Reprendre là où vous vous êtes arrêté'],
-    privacy: ['تُستخدم إجاباتك لأغراض تدريس المادة فقط ولا يطّلع عليها غير محاضر المادة. أسئلة أساسيات الإدارة المالية تشخيصية ولا تدخل في أي علامة.',
-      'Your answers are used only for teaching this course and are seen only by the course lecturer. The financial management basics questions are diagnostic and do not count towards any grade.',
-      'Vos réponses servent uniquement à l’enseignement de ce cours et ne sont consultées que par l’enseignant. Les questions sur les bases de la gestion financière sont diagnostiques et ne comptent pour aucune note.'],
+    privacy: ['تُستخدم إجاباتك لأغراض تدريس المادة فقط ولا يطّلع عليها غير محاضر المادة. الاختبار التشخيصي القصير لا يدخل في أي علامة.', 'Your answers are used only for teaching this course and are seen only by the course lecturer. The short diagnostic quiz does not count towards any grade.'],
     stepOf: ['الخطوة {n} من {t}', 'Step {n} of {t}', 'Étape {n} sur {t}'],
     welcome: ['البداية', 'Welcome', 'Accueil'],
     complete: ['اكتمل الاستبيان', 'Survey complete', 'Questionnaire terminé'],
@@ -26,6 +22,7 @@
     sending: ['جارٍ الإرسال…', 'Submitting…', 'Envoi en cours…'],
     multiTip: ['يمكنك اختيار أكثر من إجابة', 'You can choose more than one', 'Plusieurs réponses possibles'],
     otherPh: ['اكتب باختصار', 'Please specify briefly', 'Précisez brièvement'],
+    choose: ['اختر من القائمة…', 'Choose from the list…'],
     typePh: ['اكتب إجابتك هنا', 'Type your answer here', 'Écrivez votre réponse ici'],
     eRequired: ['هذا السؤال إلزامي.', 'This question is required.', 'Cette question est obligatoire.'],
     eFour: ['اكتب الاسم الرباعي كاملاً (أربعة أسماء على الأقل).', 'Enter your full four-part name (at least four names).', 'Saisissez votre nom complet en quatre parties (au moins quatre noms).'],
@@ -39,7 +36,7 @@
       'Thank you, {name}. Your answers have reached the course lecturer, and you can close this page.',
       'Merci, {name}. Vos réponses ont été transmises à l’enseignant ; vous pouvez fermer cette page.'],
     again: ['تعبئة الاستبيان لطالب آخر على هذا الجهاز', 'Fill in the survey for another student on this device', 'Remplir le questionnaire pour un autre étudiant sur cet appareil'],
-    foot: ['مادة الإدارة المالية · جامعة فلوريدا العالمية', 'Financial Management course · Florida Global University', 'Cours de gestion financière · Florida Global University']
+    foot: ['مادة مهارات الاتصال والتواصل · جامعة فلوريدا العالمية', 'Communication Skills course · Florida Global University']
   };
 
   var a = {}, step = -1, dir = 'fwd', stepError = false, sendError = false, sending = false, done = null;
@@ -81,6 +78,12 @@
         ' value="' + esc(v || '') + '">';
     } else if (q.type === 'longtext') {
       h = '<textarea class="field" id="' + id + '" data-q="' + q.id + '" maxlength="' + (q.maxLength || 600) + '" placeholder="' + esc(L(T.typePh)) + '">' + esc(v || '') + '</textarea>';
+    } else if (q.type === 'select') {
+      var lg = F.getLang();
+      function sk(op) { var t = L(op.l); if (lg === 'ar') t = t.replace(/^ال/, '').replace(/[آأإ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه'); return t; }
+      var opts = q.options.slice().sort(function (x, y) { return sk(x).localeCompare(sk(y), lg); });
+      h = '<select class="field" id="' + id + '" data-q="' + q.id + '" aria-labelledby="' + id + '_l"><option value="">' + esc(L(T.choose)) + '</option>' +
+        opts.map(function (op) { return '<option value="' + op.v + '"' + (v === op.v ? ' selected' : '') + '>' + esc(L(op.l)) + '</option>'; }).join('') + '</select>';
     } else if (q.type === 'scale') {
       h = '<div class="scale" role="radiogroup" aria-labelledby="' + id + '_l">';
       for (var i = 1; i <= 5; i++) {
@@ -107,7 +110,7 @@
     }
     return '<div class="q" id="' + id + '_wrap" data-wrap="' + q.id + '"' + (F.visible(q, a) ? '' : ' hidden') + '>' +
       '<div class="q-label" id="' + id + '_l"><span class="q-n num">' + qNumber(q) + '</span>' +
-      (q.type === 'text' || q.type === 'longtext' ? '<label for="' + id + '">' + esc(L(q.label)) + '</label>' : '<span>' + esc(L(q.label)) + '</span>') + '</div>' +
+      (q.type === 'text' || q.type === 'longtext' || q.type === 'select' ? '<label for="' + id + '">' + esc(L(q.label)) + '</label>' : '<span>' + esc(L(q.label)) + '</span>') + '</div>' +
       (q.hint ? '<p class="q-hint">' + esc(L(q.hint)) + '</p>' : '') +
       '<div class="q-body">' + h + '</div><p class="q-err" role="alert"></p></div>';
   }
@@ -147,7 +150,7 @@
     $('brandUni').textContent = L(F.UNI);
     $('brandCourse').textContent = L(F.COURSE);
     $('foot').textContent = L(T.foot);
-    document.title = L(T.surveyTitle) + ' · ' + L(F.COURSE) + ' · FGU';
+    document.title = L(T.surveyTitle) + ' · ' + L(F.COURSE) + '';
     $('langs').innerHTML = F.LANGS.map(function (l) {
       return '<button type="button" data-lang="' + l + '" lang="' + l + '" aria-pressed="' + (l === F.getLang()) + '" aria-label="' + F.LANG_NAMES[l] + '"><span class="full">' + F.LANG_NAMES[l] + '</span><span class="short">' + F.LANG_SHORT[l] + '</span></button>';
     }).join('');

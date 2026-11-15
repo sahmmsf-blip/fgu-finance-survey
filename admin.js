@@ -1,8 +1,8 @@
-/* FGU survey — lecturer dashboard: password gate, filters, charts, student list, Excel export. */
+/* Communication Skills survey — lecturer dashboard: password gate, filters, charts, student list, Excel export. */
 (function () {
   'use strict';
   var F = window.FGU, X = window.FGUExcel, L = F.L, esc = F.esc;
-  var PASS_KEY = 'fgu_admin_pass';
+  var PASS_KEY = 'comm_admin_pass';
 
   var T = {
     admin: ['لوحة المحاضر', 'Lecturer dashboard', 'Tableau de bord de l’enseignant'],
@@ -24,19 +24,19 @@
     all: ['الكل', 'All', 'Tous'],
     kN: ['عدد الطلاب', 'Students', 'Étudiants'],
     kNsub: ['من أصل {n} إجابة', 'of {n} responses', 'sur {n} réponses'],
-    kQuiz: ['متوسط اختبار الأساسيات', 'Average basics quiz', 'Moyenne au quiz de base'],
+    kQuiz: ['متوسط الاختبار التشخيصي', 'Average diagnostic quiz', ''],
     kQuizSub: ['من 8 أسئلة', 'out of 8 questions', 'sur 8 questions'],
-    kWork: ['يعملون حالياً', 'Currently working', 'En activité'],
-    kWorkSub: ['دوام كامل أو جزئي أو عمل خاص', 'full-time, part-time or self-employed', 'temps plein, partiel ou indépendant'],
-    kFin: ['خبرة مالية أو محاسبية', 'Finance or accounting experience', 'Expérience finance ou comptabilité'],
-    kFinSub: ['محاسبة، تمويل، تدقيق أو خزينة', 'accounting, finance, audit or treasury', 'comptabilité, finance, audit ou trésorerie'],
+    kWork: ['يستخدمون الإنجليزية خارج الصف', 'Use English outside class', ''],
+    kWorkSub: ['يومياً أو أسبوعياً', 'daily or weekly', ''],
+    kFin: ['يخافون من التحدث أمام الآخرين', 'Fear speaking in front of others', ''],
+    kFinSub: ['من أكبر الصعوبات المتوقعة', 'listed among expected difficulties', ''],
     sLevel: ['المستوى العلمي', 'Academic level', 'Niveau académique'],
     sWho: ['من هم الطلاب', 'Who the students are', 'Qui sont les étudiants'],
-    sWork: ['الخبرة العملية ومجال العمل', 'Work experience and field', 'Expérience et domaine professionnels'],
-    sSkills: ['المهارات التقنية', 'Technical skills', 'Compétences techniques'],
+    sWork: ['الخلفية اللغوية', 'Language background', ''],
+    sSkills: ['التقنية وأسلوب التعلم', 'Technology and learning style', ''],
     sGoals: ['التوقعات والأهداف', 'Expectations and goals', 'Attentes et objectifs'],
     sList: ['الطلاب', 'Students', 'Étudiants'],
-    pBands: ['مستوى الطلاب حسب اختبار الأساسيات', 'Student level by basics quiz', 'Niveau selon le quiz de base'],
+    pBands: ['مستوى الطلاب حسب الاختبار التشخيصي', 'Student level by diagnostic quiz', ''],
     pQuiz: ['نسبة الإجابة الصحيحة لكل سؤال', 'Share answering each question correctly', 'Part de bonnes réponses par question'],
     pSelf: ['التقييم الذاتي (متوسط من 5)', 'Self-assessment (average of 5)', 'Auto-évaluation (moyenne sur 5)'],
     othersSaid: ['«أخرى»:', '“Other”:', '« Autre » :'],
@@ -44,7 +44,7 @@
     empty: ['لم تصل أي إجابة بعد. شارك رابط الاستبيان مع الطلاب ثم اضغط «تحديث».', 'No responses yet. Share the survey link with your students, then press “Refresh”.', 'Aucune réponse pour l’instant. Partagez le lien avec vos étudiants puis appuyez sur « Actualiser ».'],
     search: ['بحث بالاسم أو الرقم الجامعي', 'Search by name or university ID', 'Rechercher par nom ou numéro'],
     thName: ['الاسم', 'Name', 'Nom'], thId: ['الرقم الجامعي', 'University ID', 'Numéro'], thLevel: ['المرحلة', 'Programme', 'Cycle'],
-    thMajor: ['التخصص', 'Major', 'Spécialité'], thWork: ['العمل', 'Work', 'Emploi'], thQuiz: ['الاختبار', 'Quiz', 'Quiz'], thDate: ['التاريخ', 'Date', 'Date'],
+    thMajor: ['الكلية', 'Faculty', ''], thWork: ['الدولة', 'Country', ''], thQuiz: ['الاختبار', 'Quiz', 'Quiz'], thDate: ['التاريخ', 'Date', 'Date'],
     close: ['إغلاق', 'Close', 'Fermer'],
     del: ['حذف هذه الإجابة', 'Delete this response', 'Supprimer cette réponse'],
     delSure: ['اضغط مرة أخرى لتأكيد الحذف النهائي', 'Press again to delete permanently', 'Appuyez de nouveau pour supprimer définitivement'],
@@ -70,7 +70,7 @@
 
   function load() {
     busy = true; render();
-    return F.rpc('fgu_survey_admin_list', { p_pass: pass }).then(function (data) {
+    return F.rpc('comm_survey_admin_list', { p_pass: pass }).then(function (data) {
       rows = data || []; var p = X.prepare(rows); recs = p.list; dups = p.duplicates;
       loaded = true; busy = false; gateMsg = '';
       try { sessionStorage.setItem(PASS_KEY, pass); } catch (e) {}
@@ -102,6 +102,10 @@
 
   function distPanel(q, list) {
     var multi = q.type === 'multi', vals = q.options.map(function (op) { return op.v; });
+    if (q.type === 'select') {
+      var cnt = {}; list.forEach(function (r) { if (r.a[q.id]) cnt[r.a[q.id]] = (cnt[r.a[q.id]] || 0) + 1; });
+      vals = vals.filter(function (v) { return cnt[v]; }).sort(function (x, y) { return cnt[y] - cnt[x]; });
+    }
     if (q.showIf && list.some(function (r) { return r.a[q.id] === 'na'; })) vals.push('na');
     var n = list.length, h = '<div class="bars">';
     vals.forEach(function (v) {
@@ -126,7 +130,7 @@
   function chrome() {
     $('brandUni').textContent = L(F.UNI);
     $('brandCourse').textContent = L(F.COURSE) + ' · ' + L(T.admin);
-    document.title = L(T.admin) + ' · FGU';
+    document.title = L(T.admin);
     $('langs').innerHTML = F.LANGS.map(function (l) {
       return '<button type="button" data-lang="' + l + '" lang="' + l + '" aria-pressed="' + (l === F.getLang()) + '" aria-label="' + F.LANG_NAMES[l] + '"><span class="full">' + F.LANG_NAMES[l] + '</span><span class="short">' + F.LANG_SHORT[l] + '</span></button>';
     }).join('');
@@ -155,7 +159,7 @@
 
     if (!recs.length) { $('app').innerHTML = h + '<div class="card panel"><p class="empty">' + esc(L(T.empty)) + '</p></div></div>'; return; }
 
-    h += '<div class="card filters">' + ['level', 'major', 'emp_status'].map(function (id) {
+    h += '<div class="card filters">' + ['level', 'college', 'year'].map(function (id) {
       var q = Q[id];
       return '<label>' + esc(L(q.label)) + '<select class="field" data-filter="' + id + '" id="f_' + id + '"><option value="">' + esc(L(T.all)) + '</option>' +
         q.options.map(function (op) { return '<option value="' + op.v + '"' + (filt[id] === op.v ? ' selected' : '') + '>' + esc(L(op.l)) + '</option>'; }).join('') + '</select></label>';
@@ -164,8 +168,8 @@
     if (!n) { $('app').innerHTML = h + '<div class="card panel"><p class="empty">' + esc(L(T.none)) + '</p></div></div>'; return; }
 
     var avg = list.reduce(function (s, r) { return s + r.score; }, 0) / n;
-    var working = list.filter(function (r) { return r.a.emp_status !== 'none'; }).length;
-    var fin = list.filter(function (r) { return ['accounting', 'finance', 'audit', 'treasury'].indexOf(r.a.job) >= 0; }).length;
+    var working = list.filter(function (r) { return ['daily', 'weekly'].indexOf(r.a.eng_use) >= 0; }).length;
+    var fin = list.filter(function (r) { return Array.isArray(r.a.difficulty) && r.a.difficulty.indexOf('fear') >= 0; }).length;
     function kpi(label, value, sub) { return '<div class="kpi"><div class="kpi-label">' + esc(label) + '</div><div class="kpi-value num"><bdi dir="ltr">' + value + '</bdi></div><div class="kpi-sub">' + esc(sub) + '</div></div>'; }
     h += '<div class="kpis">' +
       kpi(L(T.kN), n, L(T.kNsub).replace('{n}', recs.length)) +
@@ -190,13 +194,13 @@
       var m = v.length ? v.reduce(function (s, x) { return s + x; }, 0) / v.length : 0;
       sh += bar(L(q.short), m, 5, 'gold', '<b>' + m.toFixed(1) + '</b> / 5');
     });
-    h += panel(L(T.pSelf), sh + '</div>') + distPanel(Q.courses, list) + '</div>';
+    h += panel(L(T.pSelf), sh + '</div>') + '</div>';
 
     function group(title, ids) { h += '<h2 class="sec-title">' + esc(title) + '</h2><div class="grid">' + ids.map(function (id) { return distPanel(Q[id], list); }).join('') + '</div>'; }
-    group(L(T.sWho), ['level', 'major', 'year']);
-    group(L(T.sWork), ['emp_status', 'exp_years', 'sector', 'job', 'org_size', 'fin_role', 'tasks', 'certs']);
-    group(L(T.sSkills), ['software', 'calc']);
-    h += '<h2 class="sec-title">' + esc(L(T.sGoals)) + '</h2><div class="grid">' + distPanel(Q.goals, list) + distPanel(Q.hours, list) + quotesPanel(Q.expect, list) + quotesPanel(Q.concerns, list) + '</div>';
+    group(L(T.sWho), ['country', 'level', 'college', 'year']);
+    group(L(T.sWork), ['school_type', 'eng_years', 'prev_eng', 'eng_use', 'exam']);
+    group(L(T.sSkills), ['tools', 'device', 'internet', 'learn_style']);
+    h += '<h2 class="sec-title">' + esc(L(T.sGoals)) + '</h2><div class="grid">' + distPanel(Q.goals, list) + distPanel(Q.difficulty, list) + distPanel(Q.hours, list) + quotesPanel(Q.expect, list) + quotesPanel(Q.concerns, list) + '</div>';
 
     h += '<h2 class="sec-title">' + esc(L(T.sList)) + '</h2><div class="card panel">' +
       '<input class="field search" id="search" type="search" placeholder="' + esc(L(T.search)) + '" aria-label="' + esc(L(T.search)) + '" value="' + esc(search) + '">' +
@@ -212,8 +216,8 @@
       var a = r.a;
       return '<tr data-id="' + esc(r.id) + '" tabindex="0"><td><bdi>' + esc(r.name) + '</bdi></td><td class="num"><bdi>' + esc(r.sid) + '</bdi></td>' +
         '<td>' + esc(a.level === 'other' ? a.level_other : F.optLabel(Q.level, a.level)) + '</td>' +
-        '<td>' + esc(a.major === 'other' ? a.major_other : F.optLabel(Q.major, a.major)) + '</td>' +
-        '<td>' + esc(F.optLabel(Q.exp_years, a.exp_years)) + '</td>' +
+        '<td>' + esc(a.college === 'other' ? a.college_other : F.optLabel(Q.college, a.college)) + '</td>' +
+        '<td>' + esc(F.optLabel(Q.country, a.country)) + '</td>' +
         '<td><span class="pill b' + r.band + ' num">' + r.score + ' / 8</span></td><td class="num">' + esc(fmtDate(r.at)) + '</td></tr>';
     }).join('');
   }
@@ -263,7 +267,7 @@
     wb.xlsx.writeBuffer().then(function (buf) {
       var url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
       var a = document.createElement('a');
-      a.href = url; a.download = 'FGU-Financial-Management-Survey-' + new Date().toISOString().slice(0, 10) + '.xlsx';
+      a.href = url; a.download = 'Communication-Skills-Survey-' + new Date().toISOString().slice(0, 10) + '.xlsx';
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
       status = ''; render();
@@ -283,7 +287,7 @@
       if (b.dataset.del) {
         if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = L(T.delSure); return; }
         b.disabled = true;
-        F.rpc('fgu_survey_admin_delete', { p_pass: pass, p_id: b.dataset.del })
+        F.rpc('comm_survey_admin_delete', { p_pass: pass, p_id: b.dataset.del })
           .then(function () { $('sheet').close(); return load(); })
           .catch(function () { b.disabled = false; $('sheetMsg').textContent = L(T.netErr); });
         return;
@@ -310,7 +314,7 @@
       var p1 = $('np1').value, p2 = $('np2').value, msg = $('sheetMsg');
       if (p1.length < 8) { msg.textContent = L(T.passShort); return; }
       if (p1 !== p2) { msg.textContent = L(T.passMismatch); return; }
-      F.rpc('fgu_survey_admin_set_pass', { p_pass: pass, p_new: p1 }).then(function () {
+      F.rpc('comm_survey_admin_set_pass', { p_pass: pass, p_new: p1 }).then(function () {
         pass = p1; try { sessionStorage.setItem(PASS_KEY, pass); } catch (e2) {}
         $('sheet').close(); status = L(T.passSaved); statusErr = false; render();
       }).catch(function () { msg.textContent = L(T.netErr); });
